@@ -1,0 +1,320 @@
+menu "LGE Board Selection"
+
+config MACH_LGE
+	bool
+	
+config MACH_LGE_M3S
+	depends on ARCH_MSM7X30
+	depends on !MSM_STACKED_MEMORY
+	select MACH_LGE
+	bool "LGE M3S"
+	help
+	  Support for the LGE M3S board.
+
+endmenu
+
+menu "LGE Device-Specific Changes"
+
+config LGE_PCB_REVISION
+	int "PCB Revision(0~16)"
+	range 0 16
+	default "9" 
+	depends on MACH_LGE
+	help
+	 Choose PCB Revision(see board_lge.h)
+	 0: Rev0, 1: RevA, 2: RevB, 3: RevC, 4: RevD, 5: RevE,
+	 6: RevF, 7: RevG, 8: RevH
+	 9: Rev1P0 10: Rev1P1 11: Rev1P2 12: Rev1P3 13: Rev1P4
+	 14: Rev1P5 15: Rev1P6 16: Rev1P7
+	 
+config LGE_SUPPORT_RAPI
+        tristate "Support LGE RAPI"
+        default n
+        depends on MACH_LGE
+        help
+          LGE remote api functions
+
+config LGE_ERI_DOWNLOAD
+	bool "LGE ERI DOWNLOAD"
+	depends on MACH_LGE_M3S
+	default n
+	help
+	  /data/eri/eri.bin file download, will be done if modem diag receives the write command.
+
+config LGE_USB_GADGET_SUPPORT_FACTORY_USB
+	tristate "USB Gadget Support LGE Factory USB"
+	depends on USB_GADGET
+	help
+	  Supports LG USB driver
+	
+	default n
+
+config LGE_PCB_VERSION
+	bool "Support LGE PCB Version RAPI"
+	default n 
+	depends on MACH_LGE
+	help
+	 Choose if use PCB Version RAPI
+
+config LGE_SYNC_CMD
+	bool "Support LGE sync request"
+	default n 
+	depends on MACH_LGE
+	help
+	 sync request command
+
+config LGE_EMMC_SUPPORT
+	bool "Support LGE eMMC related operations"
+	default n 
+	depends on MACH_LGE
+	help
+	 eMMC read / write operations
+
+config LGE_BOOTCOMPLETE_INFO
+	bool "Support LGE boot complete check"
+	default n 
+	depends on MACH_LGE
+	help
+	 boot complete notification command
+
+config LGE_CHARGING_MODE_INFO
+	bool "Support LGE charging mode check"
+	default n 
+	depends on MACH_LGE
+	help
+	 charging mode notification command
+
+config LGE_RAM_CONSOLE
+	bool "Support kmsg save in the ram console area"
+	default n
+	depends on MACH_LGE
+	help
+	  Support kmsg save
+
+config LGE_RAM_CONSOLE_CLEAN
+	bool "Clean ram console"
+	default n
+	help
+	  Clean ram console when powered off normally
+
+config LGE_ERS
+	tristate "Support LGE ERS system"
+	default n
+	depends on LGE_RAM_CONSOLE
+	help
+	  LGE error reporting system
+
+config LGE_DLOAD_RESET_BOOT_UP
+	bool "Support LGE dload reset check"
+	default n 
+	depends on MACH_LGE
+	help
+	 incase dload reset, do not go into the charging mode
+
+config LGE_FOTA_MISC_INFO
+	bool "Support information that is required for FOTA"
+	default n 
+	depends on MACH_LGE
+	help
+	 support SW version, MIN, etc
+
+config LGE_MANUAL_MODE_TEST
+	bool "sys file for manual mode test nv"
+	default n 
+	depends on LGE_DIAG
+	help
+	 set manual test nv value on the sys file and this will be set
+	 while boot-up and will be used in the user space
+	 
+config LGE_HIDDEN_RESET_PATCH
+        bool "Support LGE hidden reset function"
+        default n
+        depends on MACH_LGE_BRYCE
+        depends on ANDROID_RAM_CONSOLE
+        help
+          LGE hidden reset function
+	  	
+endmenu
+          
+menu "LGE Diag command Specific"
+
+config LGE_DIAG
+        tristate "Support LGE diag test mode"
+        default n
+        depends on MACH_LGE
+        select LGE_SUPPORT_RAPI
+        help
+          LGE diag test mode
+
+config LGE_DIAG_MTC
+	tristate "Support LGE diag MTC"
+	default n
+	depends on LGE_DIAG
+	help
+	  LGE diag MTC enable
+	  
+config LGE_DIAG_WMC
+        bool "Support LGE diag WMC"
+        default n
+        depends on LGE_DIAG
+        help
+          LGE diag WMC enable
+
+config LGE_DIAG_TESTMODE
+	bool "Support LGE diag TESTMODE"
+	default n
+	depends on LGE_DIAG
+	help
+	  LGE diag TESTMODE enable
+
+config LGE_DIAG_LCDQTEST
+	bool "Support LGE diag LCD Q-TEST"
+	default n
+	depends on LGE_DIAG
+	help
+	  LGE diag LCD Q-TEST enable
+
+config LGE_DIAG_KEYPRESS
+	bool "Support LGE diag KEYPRESS"
+	default n
+	depends on LGE_DIAG
+	help
+	  LGE diag LCD KEYPRESS enable
+
+config LGE_DIAG_SCREENSHOT
+	bool "Support LGE diag SCREENSHOT"
+	default n
+	depends on LGE_DIAG
+	help
+	  LGE diag LCD SCREENSHOT enable
+	  
+config LGE_DIAG_WIFI
+	bool "Support LGE diag WIFI"
+	default n
+	depends on LGE_DIAG
+	help
+	  LGE diag LCD WIFI enable
+	  
+config LGE_DIAG_UDM
+	bool "Support LGE diag UDM"
+	default n
+	depends on LGE_DIAG
+	help
+	  LGE diag LCD UDM enable	  	  
+
+config LGE_DIAG_ICD
+	bool "Support LGE diag ICD"
+	default n
+	depends on LGE_DIAG
+	help
+	  LGE diag LCD ICD enable
+
+config LGE_DIAG_SRD
+	bool "Support LGE diag SRD"
+	default n
+	depends on LGE_DIAG
+	help
+	  LGE diag LCD SRD enable
+
+config LGE_DIAG_ATS_ETA_MTC_KEY_LOGGING
+	tristate "Support LGE diag test mode"
+	default n
+	depends on LGE_DIAG
+	help
+	  LGE diag test mode
+	  
+endmenu
+
+menu "LGE AT command Specific"
+
+config LGE_SUPPORT_AT_CMD
+        bool "Support LGE AT_CMD system"
+        default n
+        depends on MACH_LGE
+        help
+         LGE AT_CMD Support
+
+config LGE_ATS_INPUT_DEVICE
+        bool "Support LGE ATS input device"
+        default n
+        depends on MACH_LGE
+        help
+         Choose if use ATS input device used for generating input event from user space
+         
+endmenu
+
+menu "LGE Audio Device"
+config LGE_AUDIO
+    bool "Enable LGE Audio Device"
+    default n
+        
+config LGE_PMIC_VIBRATOR
+        bool "Support LGE PMIC Vibrator"
+        default n
+        depends on (LGE_AUDIO && PMIC8058 && !PMIC8058_VIBRATOR)
+        help
+         LGE PMIC Vibrator Driver
+         
+config LGE_HEADSET_2WIRE_DETECT
+        bool "Support H2W Headset"
+        default n
+        depends on (LGE_AUDIO && SWITCH)
+        help
+         LGE 3/4 Pole Headset Detect Driver
+
+config LGE_AUDIO_HEADSET_PROTECT
+        bool "Support Headset Protect Enable"
+        default n
+        depends on LGE_HEADSET_2WIRE_DETECT
+        help
+         Headset Mic Enable Control
+         
+config LGE_AMP_TPA2055D3
+        bool "Support LGE TPA2055D3 Audio Amp"
+        default n
+        depends on LGE_AUDIO
+        help
+         LGE TI TPA2055D3 Audio Amp Driver
+
+config LGE_RCV_SPK_SWITCH
+        bool "Support LGE RCV_SPK Switch"
+        default n
+        depends on LGE_AUDIO
+        help
+         Choose If  external receiver/speaker switch is used
+         
+endmenu
+
+menu "LGE Specific Patches"
+
+config LGE_SUSPEND_TIME
+    tristate "Log time spent in suspend"
+    default y
+    depends on MACH_LGE
+	help
+	  Prints the time spent in suspend in the kernel log, and
+	  keeps statistics on the time spent in suspend in
+	  /sys/kernel/debug/suspend_time
+
+	  This patch serves same function with google's suspend_time.c
+
+config LGE_EARLYSUSPEND_FUNC_TIME
+    tristate "Log time spent in each earlysuspend call"
+    default y
+    depends on MACH_LGE
+	help
+	  Keeps the time statistics spent in each earlysuspend in 
+	  /sys/kernel/debug/earlysuspend_func_time.
+	  This file shows the average and max tiem of each 
+	  earlysuspend/lateresume function.
+
+config LGE_SUSPEND_AUTOTEST
+    tristate "Test suspend/resume and earlysuspend/lateresume automatically"
+    default y
+    depends on MACH_LGE && SUSPEND && EARLYSUSPEND
+	help
+      This option will let you suspend your machine, and make it wake up
+	  a few seconds later using an timer automatically.  
+	  Enable this with a kernel parameter by sysfs.
+
+endmenu
