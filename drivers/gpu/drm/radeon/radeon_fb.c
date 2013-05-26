@@ -59,6 +59,8 @@ static struct fb_ops radeonfb_ops = {
 	.fb_pan_display = drm_fb_helper_pan_display,
 	.fb_blank = drm_fb_helper_blank,
 	.fb_setcmap = drm_fb_helper_setcmap,
+	.fb_debug_enter = drm_fb_helper_debug_enter,
+	.fb_debug_leave = drm_fb_helper_debug_leave,
 };
 
 
@@ -94,6 +96,7 @@ static void radeonfb_destroy_pinned_object(struct drm_gem_object *gobj)
 	ret = radeon_bo_reserve(rbo, false);
 	if (likely(ret == 0)) {
 		radeon_bo_kunmap(rbo);
+		radeon_bo_unpin(rbo);
 		radeon_bo_unreserve(rbo);
 	}
 	drm_gem_object_unreference_unlocked(gobj);
@@ -110,15 +113,18 @@ static int radeonfb_create_pinned_object(struct radeon_fbdev *rfbdev,
 	u32 tiling_flags = 0;
 	int ret;
 	int aligned_size, size;
+	int height = mode_cmd->height;
 
 	/* need to align pitch with crtc limits */
 	mode_cmd->pitch = radeon_align_pitch(rdev, mode_cmd->width, mode_cmd->bpp, fb_tiled) * ((mode_cmd->bpp + 1) / 8);
 
-	size = mode_cmd->pitch * mode_cmd->height;
+	if (rdev->family >= CHIP_R600)
+		height = ALIGN(mode_cmd->height, 8);
+	size = mode_cmd->pitch * height;
 	aligned_size = ALIGN(size, PAGE_SIZE);
 	ret = radeon_gem_object_create(rdev, aligned_size, 0,
 				       RADEON_GEM_DOMAIN_VRAM,
-				       false, ttm_bo_type_kernel,
+				       false, true,
 				       &gobj);
 	if (ret) {
 		printk(KERN_ERR "failed to allocate framebuffer (%d)\n",
@@ -224,7 +230,7 @@ static int radeonfb_create(struct radeon_fbdev *rfbdev,
 
 	drm_fb_helper_fill_fix(info, fb->pitch, fb->depth);
 
-	info->flags = FBINFO_DEFAULT;
+	info->flags = FBINFO_DEFAULT | FBINFO_CAN_FORCE_OUTPUT;
 	info->fbops = &radeonfb_ops;
 
 	tmp = radeon_bo_gpu_offset(rbo) - rdev->mc.vram_start;
@@ -242,10 +248,8 @@ static int radeonfb_create(struct radeon_fbdev *rfbdev,
 		goto out_unref;
 	}
 	info->apertures->ranges[0].base = rdev->ddev->mode_config.fb_base;
-	info->apertures->ranges[0].size = rdev->mc.real_vram_size;
+	info->apertures->ranges[0].size = rdev->mc.aper_size;
 
-	info->fix.mmio_start = 0;
-	info->fix.mmio_len = 0;
 	info->pixmap.size = 64*1024;
 	info->pixmap.buf_align = 8;
 	info->pixmap.access_align = 32;
@@ -325,8 +329,6 @@ static int radeon_fbdev_destroy(struct drm_device *dev, struct radeon_fbdev *rfb
 {
 	struct fb_info *info;
 	struct radeon_framebuffer *rfb = &rfbdev->rfb;
-	struct radeon_bo *rbo;
-	int r;
 
 	if (rfbdev->helper.fbdev) {
 		info = rfbdev->helper.fbdev;
@@ -338,14 +340,8 @@ static int radeon_fbdev_destroy(struct drm_device *dev, struct radeon_fbdev *rfb
 	}
 
 	if (rfb->obj) {
-		rbo = rfb->obj->driver_private;
-		r = radeon_bo_reserve(rbo, false);
-		if (likely(r == 0)) {
-			radeon_bo_kunmap(rbo);
-			radeon_bo_unpin(rbo);
-			radeon_bo_unreserve(rbo);
-		}
-		drm_gem_object_unreference_unlocked(rfb->obj);
+		radeonfb_destroy_pinned_object(rfb->obj);
+		rfb->obj = NULL;
 	}
 	drm_fb_helper_fini(&rfbdev->helper);
 	drm_framebuffer_cleanup(&rfb->base);

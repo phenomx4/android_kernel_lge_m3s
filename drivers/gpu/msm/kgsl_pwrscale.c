@@ -1,5 +1,4 @@
 /* Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
- * Copyright (C) 2011 Sony Ericsson Mobile Communications AB.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -186,12 +185,12 @@ static void pwrscale_sysfs_release(struct kobject *kobj)
 {
 }
 
-static struct sysfs_ops policy_sysfs_ops = {
+static const struct sysfs_ops policy_sysfs_ops = {
 	.show = policy_sysfs_show,
 	.store = policy_sysfs_store
 };
 
-static struct sysfs_ops pwrscale_sysfs_ops = {
+static const struct sysfs_ops pwrscale_sysfs_ops = {
 	.show = pwrscale_sysfs_show,
 	.store = pwrscale_sysfs_store
 };

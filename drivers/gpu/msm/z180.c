@@ -148,7 +148,6 @@ static struct z180_device device_2d0 = {
 			.config = Z180_MMU_CONFIG,
 		},
 		.pwrctrl = {
-			.pwr_rail = PWR_RAIL_GRP_2D_CLK,
 			.regulator_name = "fs_gfx2d0",
 			.irq_name = KGSL_2D0_IRQ,
 		},
@@ -187,7 +186,6 @@ static struct z180_device device_2d1 = {
 			.config = Z180_MMU_CONFIG,
 		},
 		.pwrctrl = {
-			.pwr_rail = PWR_RAIL_GRP_2D_CLK,
 			.regulator_name = "fs_gfx2d1",
 			.irq_name = KGSL_2D1_IRQ,
 		},
@@ -380,7 +378,8 @@ static int z180_idle(struct kgsl_device *device, unsigned int timeout)
 	int status = 0;
 	struct z180_device *z180_dev = Z180_DEVICE(device);
 
-	if (z180_dev->current_timestamp > z180_dev->timestamp)
+	if (timestamp_cmp(z180_dev->current_timestamp,
+		z180_dev->timestamp) > 0)
 		status = z180_wait(device, z180_dev->current_timestamp,
 					timeout);
 
@@ -646,15 +645,10 @@ static int z180_getproperty(struct kgsl_device *device,
 
 static unsigned int z180_isidle(struct kgsl_device *device)
 {
-	int status = false;
 	struct z180_device *z180_dev = Z180_DEVICE(device);
 
-	int timestamp = z180_dev->timestamp;
-
-	if (timestamp == z180_dev->current_timestamp)
-		status = true;
-
-	return status;
+	return (timestamp_cmp(z180_dev->timestamp,
+		z180_dev->current_timestamp) == 0) ? true : false;
 }
 
 static int z180_suspend_context(struct kgsl_device *device)

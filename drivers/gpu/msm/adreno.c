@@ -16,6 +16,8 @@
 #include <linux/ioctl.h>
 #include <linux/sched.h>
 
+#include <mach/socinfo.h>
+
 #include "kgsl.h"
 #include "kgsl_pwrscale.h"
 #include "kgsl_cffdump.h"
@@ -28,13 +30,6 @@
 
 #include "a2xx_reg.h"
 #include "kgsl_mmu.h"
-
-#define cpu_is_msm7x01()        0
-#define cpu_is_msm7x30()        1
-#define cpu_is_qsd8x50()        0
-#define cpu_is_msm8x60()        0
-#define cpu_is_msm8960()        0
-#define cpu_is_msm8930()        0
 
 #define DRIVER_VERSION_MAJOR   3
 #define DRIVER_VERSION_MINOR   1
@@ -96,7 +91,6 @@ static struct adreno_device device_3d0 = {
 			.config = ADRENO_MMU_CONFIG,
 		},
 		.pwrctrl = {
-			.pwr_rail = PWR_RAIL_GRP_CLK,
 			.regulator_name = "fs_gfx3d",
 			.irq_name = KGSL_3D0_IRQ,
 			.src_clk_name = "grp_src_clk",
@@ -120,7 +114,9 @@ static struct adreno_device device_3d0 = {
 	},
 	.pfp_fw = NULL,
 	.pm4_fw = NULL,
+	.wait_timeout = 10000, /* in milliseconds */
 };
+
 
 /*
  * This is the master list of all GPU cores that are supported by this
@@ -135,21 +131,28 @@ static const struct {
 	const char *pm4fw;
 	const char *pfpfw;
 	struct adreno_gpudev *gpudev;
+	unsigned int istore_size;
+	unsigned int pix_shader_start;
 } adreno_gpulist[] = {
 	{ ADRENO_REV_A200, 0, 2, ANY_ID, ANY_ID,
-		"yamato_pm4.fw", "yamato_pfp.fw", &adreno_a2xx_gpudev },
+		"yamato_pm4.fw", "yamato_pfp.fw", &adreno_a2xx_gpudev,
+		512, 384},
 	{ ADRENO_REV_A205, 0, 1, 0, ANY_ID,
-		"yamato_pm4.fw", "yamato_pfp.fw", &adreno_a2xx_gpudev },
+		"yamato_pm4.fw", "yamato_pfp.fw", &adreno_a2xx_gpudev,
+		512, 384},
 	{ ADRENO_REV_A220, 2, 1, ANY_ID, ANY_ID,
-		"leia_pm4_470.fw", "leia_pfp_470.fw", &adreno_a2xx_gpudev },
+		"leia_pm4_470.fw", "leia_pfp_470.fw", &adreno_a2xx_gpudev,
+		512, 384},
 	/*
 	 * patchlevel 5 (8960v2) needs special pm4 firmware to work around
 	 * a hardware problem.
 	 */
 	{ ADRENO_REV_A225, 2, 2, 0, 5,
-		"a225p5_pm4.fw", "a225_pfp.fw", &adreno_a2xx_gpudev },
+		"a225p5_pm4.fw", "a225_pfp.fw", &adreno_a2xx_gpudev,
+		1536, 768 },
 	{ ADRENO_REV_A225, 2, 2, ANY_ID, ANY_ID,
-		"a225_pm4.fw", "a225_pfp.fw", &adreno_a2xx_gpudev },
+		"a225_pm4.fw", "a225_pfp.fw", &adreno_a2xx_gpudev,
+		1536, 768 },
 };
 
 static void adreno_gmeminit(struct adreno_device *adreno_dev)
@@ -365,7 +368,7 @@ adreno_getchipid(struct kgsl_device *device)
 	* adreno 22x gpus are indicated by coreid 2,
 	* but REG_RBBM_PERIPHID1 always contains 0 for this field
 	*/
-	if (cpu_is_msm8960() || cpu_is_msm8x60() || cpu_is_msm8930())
+	if (cpu_is_msm8960() || cpu_is_msm8x60()/* || cpu_is_msm8930()*/)
 		chipid = 2 << 24;
 	else
 		chipid = (coreid & 0xF) << 24;
@@ -419,6 +422,8 @@ adreno_identify_gpu(struct adreno_device *adreno_dev)
 	adreno_dev->gpudev = adreno_gpulist[i].gpudev;
 	adreno_dev->pfp_fwfile = adreno_gpulist[i].pfpfw;
 	adreno_dev->pm4_fwfile = adreno_gpulist[i].pm4fw;
+	adreno_dev->istore_size = adreno_gpulist[i].istore_size;
+	adreno_dev->pix_shader_start = adreno_gpulist[i].pix_shader_start;
 }
 
 static int __devinit
@@ -431,8 +436,6 @@ adreno_probe(struct platform_device *pdev)
 	device = (struct kgsl_device *)pdev->id_entry->driver_data;
 	adreno_dev = ADRENO_DEVICE(device);
 	device->parentdev = &pdev->dev;
-
-	adreno_dev->wait_timeout = 10000; /* default value in milliseconds */
 
 	init_completion(&device->recovery_gate);
 
@@ -542,7 +545,7 @@ static int adreno_start(struct kgsl_device *device, unsigned int init_ram)
 	adreno_regwrite(device, REG_SQ_VS_PROGRAM, 0x00000000);
 	adreno_regwrite(device, REG_SQ_PS_PROGRAM, 0x00000000);
 
-	if (cpu_is_msm8960() || cpu_is_msm8930())
+	if (cpu_is_msm8960() /*|| cpu_is_msm8930()*/)
 		adreno_regwrite(device, REG_RBBM_PM_OVERRIDE1, 0x200);
 	else
 		adreno_regwrite(device, REG_RBBM_PM_OVERRIDE1, 0);
@@ -834,6 +837,12 @@ static int adreno_getproperty(struct kgsl_device *device,
 	return status;
 }
 
+static inline void adreno_poke(struct kgsl_device *device)
+{
+	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
+	adreno_regwrite(device, REG_CP_RB_WPTR, adreno_dev->ringbuffer.wptr);
+}
+
 /* Caller must hold the device mutex. */
 int adreno_idle(struct kgsl_device *device, unsigned int timeout)
 {
@@ -852,6 +861,7 @@ int adreno_idle(struct kgsl_device *device, unsigned int timeout)
 retry:
 	if (rb->flags & KGSL_FLAGS_STARTED) {
 		do {
+			adreno_poke(device);
 			GSL_RB_GET_READPTR(rb, &rb->rptr);
 			if (time_after(jiffies, wait_time)) {
 				KGSL_DRV_ERR(device, "rptr: %x, wptr: %x\n",
@@ -1025,7 +1035,7 @@ static int kgsl_check_interrupt_timestamp(struct kgsl_device *device,
 			kgsl_sharedmem_readl(&device->memstore, &ref_ts,
 				KGSL_DEVICE_MEMSTORE_OFFSET(ref_wait_ts));
 			mb();
-			if (timestamp_cmp(ref_ts, timestamp)) {
+			if (timestamp_cmp(ref_ts, timestamp) >= 0) {
 				kgsl_sharedmem_writel(&device->memstore,
 				KGSL_DEVICE_MEMSTORE_OFFSET(ref_wait_ts),
 				timestamp);
@@ -1077,61 +1087,76 @@ static int adreno_waittimestamp(struct kgsl_device *device,
 {
 	long status = 0;
 	uint io = 1;
+	static uint io_cnt;
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
+	int retries;
+	unsigned int msecs_first;
+	unsigned int msecs_part;
 
 	/* Don't wait forever, set a max value for now */
 	if (msecs == -1)
 		msecs = adreno_dev->wait_timeout;
 
-	if (timestamp != adreno_dev->ringbuffer.timestamp &&
-		timestamp_cmp(timestamp,
-		adreno_dev->ringbuffer.timestamp)) {
+	if (timestamp_cmp(timestamp, adreno_dev->ringbuffer.timestamp) > 0) {
 		KGSL_DRV_ERR(device, "Cannot wait for invalid ts: %x, "
 			"rb->timestamp: %x\n",
 			timestamp, adreno_dev->ringbuffer.timestamp);
 		status = -EINVAL;
 		goto done;
 	}
-	if (!kgsl_check_timestamp(device, timestamp)) {
-		if (pwr->active_pwrlevel) {
-			int low_pwrlevel = pwr->num_pwrlevels -
-					KGSL_PWRLEVEL_LOW_OFFSET;
-			if (pwr->active_pwrlevel == low_pwrlevel)
-				io = 0;
-		}
-		mutex_unlock(&device->mutex);
-		/* We need to make sure that the process is placed in wait-q
-		 * before its condition is called */
-		status = kgsl_wait_event_interruptible_timeout(
-				device->wait_queue,
-				kgsl_check_interrupt_timestamp(device,
-					timestamp),
-				msecs_to_jiffies(msecs), io);
-		mutex_lock(&device->mutex);
 
-		if (status > 0)
-			status = 0;
-		else if (status == 0) {
-			if (!kgsl_check_timestamp(device, timestamp)) {
-				status = -ETIMEDOUT;
-				KGSL_DRV_ERR(device,
-					"Device hang detected while waiting "
-					"for timestamp: %x, last "
-					"submitted(rb->timestamp): %x, wptr: "
-					"%x\n", timestamp,
-					adreno_dev->ringbuffer.timestamp,
-					adreno_dev->ringbuffer.wptr);
-				if (!adreno_dump_and_recover(device)) {
-					/* wait for idle after recovery as the
-					 * timestamp that this process wanted
-					 * to wait on may be invalid */
-					if (!adreno_idle(device,
-						KGSL_TIMEOUT_DEFAULT))
-						status = 0;
-				}
+	/* Keep the first timeout as 100msecs before rewriting
+	 * the WPTR. Less visible impact if the WPTR has not
+	 * been updated properly.
+	 */
+	msecs_first = (msecs <= 100) ? ((msecs + 4) / 5) : 100;
+	msecs_part = (msecs - msecs_first + 3) / 4;
+	for (retries = 0; retries < 5; retries++) {
+		if (!kgsl_check_timestamp(device, timestamp)) {
+			adreno_poke(device);
+			io_cnt = (io_cnt + 1) % 100;
+			if (io_cnt <
+				pwr->pwrlevels[pwr->active_pwrlevel].
+					io_fraction)
+				io = 0;
+			mutex_unlock(&device->mutex);
+			/* We need to make sure that the process is
+			 * placed in wait-q before its condition is called
+			 */
+			status = kgsl_wait_event_interruptible_timeout(
+					device->wait_queue,
+					kgsl_check_interrupt_timestamp(device,
+						timestamp),
+					msecs_to_jiffies(retries ?
+						msecs_part : msecs_first), io);
+			mutex_lock(&device->mutex);
+
+			if (status > 0) {
+				status = 0;
+				goto done;
 			}
 		}
+	}
+	if (!kgsl_check_timestamp(device, timestamp)) {
+		status = -ETIMEDOUT;
+		KGSL_DRV_ERR(device,
+			"Device hang detected while waiting "
+			"for timestamp: %x, last "
+			"submitted(rb->timestamp): %x, wptr: "
+			"%x\n", timestamp,
+			adreno_dev->ringbuffer.timestamp,
+			adreno_dev->ringbuffer.wptr);
+		if (!adreno_dump_and_recover(device)) {
+			/* wait for idle after recovery as the
+			 * timestamp that this process wanted
+			 * to wait on may be invalid */
+			if (!adreno_idle(device,
+				KGSL_TIMEOUT_DEFAULT))
+				status = 0;
+		}
+	} else {
+		status = 0;
 	}
 
 done:

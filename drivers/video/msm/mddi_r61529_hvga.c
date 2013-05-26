@@ -386,7 +386,7 @@ ssize_t onoff_store(struct device *dev, struct device_attribute *attr, const cha
 }
 
 
-DEVICE_ATTR(lcd_onoff, 0666, onoff_show, onoff_store);
+DEVICE_ATTR(lcd_onoff, 0664, onoff_show, onoff_store);
 
 static int mddi_r61529_lcd_probe(struct platform_device *pdev)
 {

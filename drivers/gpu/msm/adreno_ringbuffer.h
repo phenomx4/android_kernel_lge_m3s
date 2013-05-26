@@ -1,5 +1,4 @@
 /* Copyright (c) 2002,2007-2011, Code Aurora Forum. All rights reserved.
- * Copyright (C) 2011 Sony Ericsson Mobile Communications AB.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -61,9 +60,6 @@ struct adreno_ringbuffer {
 	unsigned int rptr; /* read pointer offset in dwords from baseaddr */
 	uint32_t timestamp;
 };
-
-#define writel_relaxed(v, c) ((void)__raw_writel((__force u32) \
-				cpu_to_le32(v), __mem_pci(c)))
 
 
 #define GSL_RB_WRITE(ring, gpuaddr, data) \

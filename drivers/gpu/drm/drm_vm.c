@@ -11,7 +11,6 @@
  *
  * Copyright 1999 Precision Insight, Inc., Cedar Park, Texas.
  * Copyright 2000 VA Linux Systems, Inc., Sunnyvale, California.
- * Copyright (c) 2009, Code Aurora Forum.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -139,7 +138,7 @@ static int drm_do_vm_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 				break;
 		}
 
-		if (!agpmem)
+		if (&agpmem->head == &dev->agp->memory)
 			goto vm_fault_error;
 
 		/*
@@ -524,14 +523,7 @@ static int drm_mmap_dma(struct file *filp, struct vm_area_struct *vma)
 	return 0;
 }
 
-resource_size_t drm_core_get_map_ofs(struct drm_local_map * map)
-{
-	return map->offset;
-}
-
-EXPORT_SYMBOL(drm_core_get_map_ofs);
-
-resource_size_t drm_core_get_reg_ofs(struct drm_device *dev)
+static resource_size_t drm_core_get_reg_ofs(struct drm_device *dev)
 {
 #ifdef __alpha__
 	return dev->hose->dense_mem_base - dev->hose->mem_space->start;
@@ -539,8 +531,6 @@ resource_size_t drm_core_get_reg_ofs(struct drm_device *dev)
 	return 0;
 #endif
 }
-
-EXPORT_SYMBOL(drm_core_get_reg_ofs);
 
 /**
  * mmap DMA memory.
@@ -628,7 +618,7 @@ int drm_mmap_locked(struct file *filp, struct vm_area_struct *vma)
 #endif
 	case _DRM_FRAME_BUFFER:
 	case _DRM_REGISTERS:
-		offset = dev->driver->get_reg_ofs(dev);
+		offset = drm_core_get_reg_ofs(dev);
 		vma->vm_flags |= VM_IO;	/* not in core dump */
 		vma->vm_page_prot = drm_io_prot(map->type, vma);
 #if !defined(__arm__)
