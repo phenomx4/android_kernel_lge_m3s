@@ -1,8 +1,11 @@
+config XVMALLOC
+	bool
+	default n
+
 config ZRAM
 	tristate "Compressed RAM block device support"
-	depends on BLOCK
-	select LZO_COMPRESS
-	select LZO_DECOMPRESS
+	depends on BLOCK && SYSFS
+	select XVMALLOC
 	default n
 	help
 	  Creates virtual block devices called /dev/zramX (X = 0, 1, ...).
@@ -16,14 +19,30 @@ config ZRAM
 	  See zram.txt for more information.
 	  Project home: http://compcache.googlecode.com/
 
-config ZRAM_STATS
-	bool "Enable statistics for compressed RAM disks"
+config ZRAM_DEBUG
+	bool "Compressed RAM block device debug support"
 	depends on ZRAM
-	default y
+	default n
 	help
-	  Enable statistics collection for compressed RAM devices. Statistics
-	  are exported through ioctl interface, so you have to use zramconfig
-	  program to get them. This adds only a minimal overhead.
+	  This option adds additional debugging code to the compressed
+	  RAM block device driver.
 
-	  If unsure, say Y.
+choice ZRAM_COMPRESS
+	prompt "compression method"
+	depends on ZRAM
+	default ZRAM_LZO
+	help
+	  Select the compression method used by zram.
+	  LZO is the default. Snappy compresses a bit worse (around ~2%) but
+	  much (~2x) faster, at least on x86-64.
 
+config ZRAM_LZO
+	bool "LZO compression"
+	select LZO_COMPRESS
+	select LZO_DECOMPRESS
+
+config ZRAM_SNAPPY
+	bool "Snappy compression"
+	depends on SNAPPY_COMPRESS
+	depends on SNAPPY_DECOMPRESS
+endchoice

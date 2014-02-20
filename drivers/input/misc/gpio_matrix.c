@@ -27,10 +27,10 @@
 // LGE_CHANGE_E [2011.02.07] [myeonggyu.son@lge.com] [gelato] key matrix drv line sensing delay [END]
 
 // LGE_CHANGE_S [myeonggyu.son@lge.com] [2011.02.25] [GELATO] enable or disable key logging status of slate [START]
-#ifdef CONFIG_LGE_DIAG
+
 extern int key_touch_logging_status;
 extern void mtc_send_key_log_packet(unsigned long keycode, unsigned long state);
-#endif
+
 // LGE_CHANGE_E [myeonggyu.son@lge.com] [2011.02.25] [GELATO] enable or disable key logging status of slate [END]
 
 struct gpio_kp {

@@ -457,6 +457,13 @@ config HAPTIC_ISA1200
 	help
 	  The ISA1200 is a high performance enhanced haptic driver.
 
+config GENERIC_BLN
+    bool "Generic BLN support for backlight notification"
+    default y
+    help
+      Say Y here to enable the backlight notification
+      for android led-notification (modified liblight needed)
+
 config PMIC8058_PWM
 	tristate "Qualcomm PM8058 PWM support"
 	depends on PMIC8058

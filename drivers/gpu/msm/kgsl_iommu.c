@@ -34,8 +34,8 @@ struct kgsl_iommu {
 static int kgsl_iommu_pt_equal(struct kgsl_pagetable *pt,
 					unsigned int pt_base)
 {
-	struct iommu_domain *domain = pt->priv;
-	return pt && pt_base && ((unsigned int)domain == pt_base);
+	struct iommu_domain *domain = pt ? pt->priv : NULL;
+	return domain && pt_base && ((unsigned int)domain == pt_base);
 }
 
 static void kgsl_iommu_destroy_pagetable(void *mmu_specific_pt)
@@ -262,12 +262,12 @@ kgsl_iommu_map(void *mmu_specific_pt,
 	iommu_virt_addr = memdesc->gpuaddr;
 
 	ret = iommu_map_range(domain, iommu_virt_addr, memdesc->sg,
-				memdesc->size, 0);
+				memdesc->size, MSM_IOMMU_ATTR_NONCACHED);
 	if (ret) {
 		KGSL_CORE_ERR("iommu_map_range(%p, %x, %p, %d, %d) "
 				"failed with err: %d\n", domain,
 				iommu_virt_addr, memdesc->sg, memdesc->size,
-				0, ret);
+				MSM_IOMMU_ATTR_NONCACHED, ret);
 		return ret;
 	}
 

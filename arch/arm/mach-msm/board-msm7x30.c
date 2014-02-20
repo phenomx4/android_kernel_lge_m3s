@@ -107,15 +107,14 @@
 #endif /*CONFIG_LGE_RAM_CONSOLE || CONFIG_LGE_ERS*/
 
 #include<mach/usb_gadget_fserial.h>
-
-#define MSM_PMEM_SF_SIZE	0x1700000
+#define MSM_PMEM_SF_SIZE	0x080000 /* orig 0x1700000 */
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-#define MSM_FB_SIZE            0x780000
+#define MSM_FB_SIZE            (480 * 320 * 4 * 3) /* 4bpp * 3 Pages */ /* orig 0x780000 */ 
 #else
-#define MSM_FB_SIZE            0x500000
+#define MSM_FB_SIZE            (480 * 320 * 4 * 2) /* 4bpp * 2 Pages */ /* orig 0x500000 */
 #endif
-#define MSM_PMEM_ADSP_SIZE      0x1E00000
-#define MSM_FLUID_PMEM_ADSP_SIZE	0x2800000
+#define MSM_PMEM_ADSP_SIZE      0x1400000 /* orig 0x1E00000 */
+#define MSM_FLUID_PMEM_ADSP_SIZE	0x2000000
 #define PMEM_KERNEL_EBI1_SIZE   0x600000
 #define MSM_PMEM_AUDIO_SIZE     0x200000
 

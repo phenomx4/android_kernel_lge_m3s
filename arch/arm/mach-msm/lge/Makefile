@@ -62,3 +62,4 @@ obj-y += lge_audio_misc_ctrl.o
 obj-$(CONFIG_LGE_ERS) += lge_handle_panic.o
 obj-$(CONFIG_LGE_SUSPEND_AUTOTEST) += lge_suspend_autotest.o
 obj-$(CONFIG_LGE_ERS) += lge_ers.o
+obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o

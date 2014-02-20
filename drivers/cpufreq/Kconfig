@@ -54,12 +54,20 @@ config CPU_FREQ_STAT_DETAILS
 	  If in doubt, say N.
 
 choice
+
 	prompt "Default CPUFreq governor"
 	default CPU_FREQ_DEFAULT_GOV_USERSPACE if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
 	default CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	help
 	  This option sets which CPUFreq governor shall be loaded at
 	  startup. If in doubt, select 'performance'.
+
+config CPU_FREQ_DEFAULT_GOV_DARKSIDE
+	bool "darkside"
+	select CPU_FREQ_GOV_DARKSIDE
+	help
+	  Use the CPUFreq governor 'DARKSIDE' as default.
+	  If in doubt, say N.
 
 config CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	bool "performance"
@@ -110,6 +118,12 @@ config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 	  Be aware that not all cpufreq drivers support the conservative
 	  governor. If unsure have a look at the help section of the
 	  driver. Fallback governor will be the performance governor.
+
+config CPU_FREQ_DEFAULT_GOV_SMARTASSH3
+	bool "smartassH3"
+	select CPU_FREQ_GOV_SMARTASSH3
+	help
+	  Use the CPUFreq governor 'SmartassH3' as default.
 
 config CPU_FREQ_DEFAULT_GOV_SMOOTHASS
  	bool "smoothass"
@@ -232,6 +246,12 @@ config CPU_FREQ_DEFAULT_GOV_BADASS
 		driver. Fallback governor will be the performance governor.
 
 endchoice
+
+config CPU_FREQ_GOV_DARKSIDE
+	tristate "'darkside' cpufreq governor"
+	depends on CPU_FREQ
+	help
+	  'darkside' - a "slightly more agressive smart" optimized governor!
 
 config CPU_FREQ_GOV_PERFORMANCE
 	tristate "'performance' governor"
@@ -381,6 +401,14 @@ config CPU_FREQ_GOV_BRAZILIANWAX
 	help
 	  'brazilianwax' - a "slightly more agressive smart" optimized governor!
 
+config CPU_FREQ_GOV_SMARTASSH3
+	tristate "'SmartassH3' cpufreq governor"
+	depends on CPU_FREQ
+	help
+	  'SmartassH3' - a "smartassV2 with tweaks by H3ROS" governor!
+
+	  If in doubt, say N.
+
 config CPU_FREQ_GOV_SMOOTHASS
 	tristate "'smoothass' cpufreq governor"
 	depends on CPU_FREQ
@@ -490,6 +518,14 @@ config CPU_FREQ_SAMPLING_LATENCY_MULTIPLIER
 	help
 	  Sampling latency rate multiplied by the cpu switch latency.
 	  Affects governor polling.
+	  
+config CPU_FREQ_VDD_LEVELS
+	bool "CPU Vdd levels sysfs interface"
+	depends on CPU_FREQ_STAT
+	depends on ARCH_MSM7X30
+	default n
+	help
+	  CPU Vdd levels sysfs interface
 
 endif	# CPU_FREQ
 

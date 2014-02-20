@@ -58,7 +58,7 @@
 
 #define MAX_AXI_KHZ 192000
 #define ACPU_MIN_UV_MV 600U
-#define ACPU_MAX_UV_MV 1525U
+#define ACPU_MAX_UV_MV 1450U
 
 struct clock_state {
 	struct clkctl_acpu_speed	*current_speed;
@@ -554,4 +554,3 @@ void acpuclk_set_vdd(unsigned int khz, int vdd)
 }
 
 #endif
-
